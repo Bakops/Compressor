@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { Label } from "@/components/ui/label"
 import { FileUploader } from "@/components/file-uploader"
 import { ImagePreview } from "@/components/image-preview"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import { Download, Trash2 } from "lucide-react"
+import { useState } from "react"
 
 export default function CompressionPage() {
   const [files, setFiles] = useState<File[]>([])
@@ -26,7 +26,11 @@ export default function CompressionPage() {
     const compressed: { file: File; url: string }[] = []
 
     for (const file of files) {
-      try {
+      try {        
+        // Get file extension and mime type
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+        const mimeType = file.type
+
         // Create an image from the file
         const img = new Image()
         img.src = URL.createObjectURL(file)
@@ -45,15 +49,20 @@ export default function CompressionPage() {
         // Draw and compress
         ctx?.drawImage(img, 0, 0)
 
+        const outputMimeType = mimeType || "image/jpeg"
+        const outputExtension = fileExtension || "jpg"
+
         // Convert to blob with quality setting
         const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((blob) => resolve(blob as Blob), "image/jpeg", quality / 100)
+          canvas.toBlob((blob) => resolve(blob as Blob), outputMimeType, quality / 100)
         })
 
-        // Create a new file
-        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg", {
-          type: "image/jpeg",
-        })
+        // Create a new file with preserved extension
+        const compressedFile = new File(
+          [blob], 
+          file.name.replace(/\.[^/.]+$/, "") + `_compressed.${outputExtension}`, 
+          { type: outputMimeType }
+        )
 
         compressed.push({
           file: compressedFile,
