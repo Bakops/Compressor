@@ -5,18 +5,59 @@ import { ImagePreview } from "@/components/image-preview"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import imageCompression from "browser-image-compression"
 import { Download, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 export default function CompressionPage() {
   const [files, setFiles] = useState<File[]>([])
   const [compressedFiles, setCompressedFiles] = useState<{ file: File; url: string }[]>([])
-  const [quality, setQuality] = useState(80)
+  const [quality, setQuality] = useState(32)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles(selectedFiles)
     setCompressedFiles([])
+  }
+
+  const compressImage = async (file: File, quality: number): Promise<File> => {
+    try {
+      const options = {
+        maxSizeMB: 10,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        maxIteration: 2,
+        initialQuality: quality / 100,
+        alwaysKeepResolution: true,
+      }
+
+      const compressedBlob = await imageCompression(file, options)
+      
+      if (compressedBlob.size >= file.size) {
+        const aggressiveOptions = {
+          ...options,
+          maxWidthOrHeight: 1280,
+          initialQuality: Math.max((quality - 20) / 100, 0.1)
+        }
+        const moreCompressedBlob = await imageCompression(file, aggressiveOptions)
+        
+        const finalBlob = moreCompressedBlob.size < compressedBlob.size ? moreCompressedBlob : compressedBlob
+        return new File(
+          [finalBlob],
+          file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
+          { type: "image/jpeg" }
+        )
+      }
+
+      return new File(
+        [compressedBlob],
+        file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
+        { type: "image/jpeg" }
+      )
+    } catch (error) {
+      console.error("Erreur lors de la compression:", error)
+      throw error
+    }
   }
 
   const compressImages = async () => {
@@ -26,47 +67,11 @@ export default function CompressionPage() {
     const compressed: { file: File; url: string }[] = []
 
     for (const file of files) {
-      try {        
-        // Get file extension and mime type
-        const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
-        const mimeType = file.type
-
-        // Create an image from the file
-        const img = new Image()
-        img.src = URL.createObjectURL(file)
-        await new Promise((resolve) => {
-          img.onload = resolve
-        })
-
-        // Create a canvas to compress the image
-        const canvas = document.createElement("canvas")
-        const ctx = canvas.getContext("2d")
-
-        // Set dimensions
-        canvas.width = img.width
-        canvas.height = img.height
-
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0)
-
-        const outputMimeType = mimeType || "image/jpeg"
-        const outputExtension = fileExtension || "jpg"
-
-        // Convert to blob with quality setting
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((blob) => resolve(blob as Blob), outputMimeType, quality / 100)
-        })
-
-        // Create a new file with preserved extension
-        const compressedFile = new File(
-          [blob], 
-          file.name.replace(/\.[^/.]+$/, "") + `_compressed.${outputExtension}`, 
-          { type: outputMimeType }
-        )
-
+      try {
+        const compressedFile = await compressImage(file, quality)
         compressed.push({
           file: compressedFile,
-          url: URL.createObjectURL(compressedFile),
+          url: URL.createObjectURL(compressedFile)
         })
       } catch (error) {
         console.error("Error compressing image:", error)
