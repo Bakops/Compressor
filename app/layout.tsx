@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Compresseur",
   icons: {
-    icon: "/logo 1.png",
-    shortcut: "/logo 1.png",
+    icon: "/logo-portfolio-bakou.PNG",
+    shortcut: "/logo-portfolio-bakou.PNG",
   },
 };
 

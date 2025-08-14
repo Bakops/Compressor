@@ -14,10 +14,10 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background">
+    <header className="sticky top-0 z-50 w-full border-b bg-black backdrop-blur">
       <div className="container flex h-16 items-center">
         <div className="flex items-center gap-2 font-bold">
-          <img src="logo 1.png" alt="" width={130} height={130} />
+          <img src="logo-portfolio-bakou.PNG" alt="" width={130} height={130} />
         </div>
         <nav className="flex items-center space-x-4 lg:space-x-6 mx-6">
           {navItems.map((item) => (
